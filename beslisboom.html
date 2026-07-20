@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Tool - LLM Beslisboom / Albero Decisionale</title>
+    <style>
+        /* Design ad alto contrasto per ipovedenti */
+        body {
+            background-color: #0d1117;
+            color: #ffffff;
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: #161b22;
+            border: 4px solid #f1c40f;
+            border-radius: 12px;
+            padding: 25px;
+        }
+        h1 {
+            color: #f1c40f;
+            font-size: 2rem;
+            border-bottom: 3px solid #f1c40f;
+            padding-bottom: 10px;
+            margin-top: 0;
+        }
+        h2 {
+            color: #58a6ff;
+            font-size: 1.5rem;
+        }
+        .intro-box {
+            background-color: #21262d;
+            border-left: 6px solid #58a6ff;
+            padding: 15px;
+            margin-bottom: 25px;
+            font-size: 1.1rem;
+        }
+        .step-card {
+            background-color: #21262d;
+            border: 2px solid #30363d;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+            font-size: 1.2rem;
+        }
+        .btn-group {
+            margin-top: 25px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        /* Bottoni grandi e accessibili */
+        button {
+            padding: 15px 25px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 8px;
+            border: none;
+            min-width: 120px;
+        }
+        .btn-ja {
+            background-color: #2ea44f;
+            color: #ffffff;
+            border: 2px solid #ffffff;
+        }
+        .btn-nee {
+            background-color: #da3637;
+            color: #ffffff;
+            border: 2px solid #ffffff;
+        }
+        .btn-nav {
+            background-color: #f1c40f;
+            color: #0d1117;
+            border: 2px solid #0d1117;
+        }
+        .btn-tts {
+            background-color: #58a6ff;
+            color: #0d1117;
+            font-size: 1.3rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .btn-choice {
+            background-color: #388bfd;
+            color: #ffffff;
+            border: 2px solid #ffffff;
+            text-align: left;
+            width: 100%;
+        }
+        button:focus, button:hover {
+            outline: 4px solid #ffffff;
+            opacity: 0.9;
+        }
+        ul {
+            padding-left: 20px;
+        }
+        li {
+            margin-bottom: 10px;
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- Introductie / Introduzione -->
+    <div id="intro-section">
+        <h1>AI Tool - LLM Beslisboom / Albero Decisionale</h1>
+        <div class="intro-box">
+            <p><strong>NL:</strong> Welkom bij de interactieve beslisboom voor verantwoord gebruik van Large Language Models (LLM's). Deze tool helpt u stap voor stap de juiste AI-tool te kiezen op basis van uw behoeften en privacy-eisen.</p>
+            <p><strong>IT:</strong> Benvenuto nell'albero decisionale interattivo per l'uso responsabile dei modelli linguistici (LLM). Questo strumento ti aiuta a scegliere passo dopo passo lo strumento AI corretto in base alle tue esigenze e ai requisiti di privacy.</p>
+        </div>
+        
+        <h2>Kies uw taal / Scegli la tua lingua:</h2>
+        <div class="btn-group">
+            <button class="btn-nav" onclick="setLanguage('nl')">Nederlands</button>
+            <button class="btn-nav" onclick="setLanguage('it')">Italiano</button>
+        </div>
+    </div>
+
+    <!-- Interactieve Boom / Albero Interattivo -->
+    <div id="tree-section" class="hidden">
+        <div id="tts-control">
+            <button class="btn-tts" onclick="speakCurrentStep()" aria-label="Voorlezen / Leggi testo">🔊 Voorlezen / Leggi</button>
+        </div>
+        
+        <div id="content-area" class="step-card">
+            <!-- Dynamische content komt hier -->
+        </div>
+
+        <div class="btn-group">
+            <button id="btn-back" class="btn-nav hidden" onclick="goBack()">◄ Vorige / Precedente</button>
+            <button id="btn-restart" class="btn-nav" onclick="restartTree()">↻ Begin / Inizio</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// De data van de beslisboom in twee talen
+const treeData = {
+    nl: {
+        start: {
+            text: "Gaat u privacygevoelige of vertrouwelijke data verwerken met AI?",
+            type: "yes_no",
+            yes: "privacy_lokaal",
+            no: "wat_bereiken"
+        },
+        privacy_lokaal: {
+            text: "Wilt u volledige controle (on-premise / lokaal)?",
+            type: "yes_no",
+            yes: "optie_ollama",
+            no: "microsoft_omgeving"
+        },
+        optie_ollama: {
+            text: "<strong>ADVIES: OPTIE A & LM Studio</strong><br><br>Voordelen LLM lokaal draaien op eigen hardware:<ul><li>Geen dataverkeer naar derde partijen.</li><li>Geen onduidelijkheid over data-opslag.</li><li>Volledige controle over logging, beveiliging en opslag.</li></ul>Geschikte modellen: Gemma 2, Mistral, Qwen 2, Llama 3.<br><br><em>Tips voor AVG-compliant gebruik: Sla gegevens pas op na anonimiseren.</em>",
+            type: "end"
+        },
+        microsoft_omgeving: {
+            text: "Wilt u werken binnen een Microsoft-omgeving?",
+            type: "yes_no",
+            yes: "optie_copilot",
+            no: "grote_documenten"
+        },
+        optie_copilot: {
+            text: "<strong>ADVIES: Microsoft Copilot for M365</strong><br><br>Geschikt voor het verwerken van miljoenen tokens, grote documenten, spreadsheets en code van meer dan 3000 regels binnen een beveiligde bedrijfsomgeving.",
+            type: "end"
+        },
+        grote_documenten: {
+            text: "Wilt u grote documenten of datasets verwerken (bijv. meer dan 700.000 woorden)?",
+            type: "yes_no",
+            yes: "optie_gemini_workspace",
+            no: "ai_voor_code"
+        },
+        optie_gemini_workspace: {
+            text: "<strong>ADVIES: Google Gemini Advanced for Workspace</strong><br><br>Ideaal voor zeer grote hoeveelheden tekst en data die binnen de afgeschermde Workspace-omgeving moeten blijven.",
+            type: "end"
+        },
+        ai_voor_code: {
+            text: "Wilt u AI gebruiken voor het analyseren, uitleggen of genereren van code?",
+            type: "yes_no",
+            yes: "optie_code_enterprise",
+            no: "optie_teams_enterprise"
+        },
+        optie_code_enterprise: {
+            text: "<strong>ADVIES: Code Enterprise Tools</strong><br><br>Tools: Cursor AI, GitHub Copilot.<br>Modellen: Claude Sonnet met Enterprise API, Gemini 2.5 PRO met Enterprise API.",
+            type: "end"
+        },
+        optie_teams_enterprise: {
+            text: "<strong>ADVIES: Algemene Enterprise Modellen</strong><br><br>Kies voor afgeschermde zakelijke accounts:<ul><li>Claude (Teams / Enterprise)</li><li>ChatGPT (Teams / Enterprise)</li><li>Google Gemini for Workspace</li></ul>",
+            type: "end"
+        },
+        // Ramo NO Privacy
+        wat_bereiken: {
+            text: "Wat wilt u bereiken met AI?",
+            type: "choices",
+            choices: [
+                { text: "Teksten genereren / Brainstormen / Ideeën uitwerken", next: "tekst_gratis_betaald" },
+                { text: "Slim zoeken, onderzoeken en informatie vinden", next: "optie_search" },
+                { text: "Data samenvatten / Analyseren", next: "hoe_groot_doc" },
+                { text: "Automatiseren van taken en workflows", next: "combineren_tools" },
+                { text: "Geavanceerde redenering & complexe problemen analyseren", next: "type_complex" },
+                { text: "Code schrijven / Analyseren", next: "code_in_ide" }
+            ]
+        },
+        tekst_gratis_betaald: {
+            text: "Wilt u gratis werken of wilt u de betere output, snelheid en functies?",
+            type: "choices",
+            choices: [
+                { text: "Gratis (ChatGPT Free, Claude Free, Poe.com)", next: "optie_gratis" },
+                { text: "Betere output (ChatGPT Plus, Claude Pro, Gemini Advanced)", next: "zoek_snelle_antwoorden" }
+            ]
+        },
+        optie_gratis: {
+            text: "<strong>ADVIES: Gratis tools</strong><br><br>Gebruik ChatGPT Free, Claude Free of Poe.com voor alledaagse, niet-vertrouwelijke teksten en ideeën.",
+            type: "end"
+        },
+        zoek_snelle_antwoorden: {
+            text: "Zoekt u snelle antwoorden of wilt u AI gebruiken voor diepgaand onderzoek met context en bronnen?",
+            type: "choices",
+            choices: [
+                { text: "Snelle antwoorden / Korte onderbouwing met links", next: "optie_perplexity" },
+                { text: "Diepgaand onderzoek met bronnen", next: "optie_deep_research" }
+            ]
+        },
+        optie_perplexity: {
+            text: "<strong>ADVIES: Perplexity of ChatGPT Search</strong><br><br>Ideaal voor actuele vragen met directe links naar bronnen op het web.",
+            type: "end"
+        },
+        optie_deep_research: {
+            text: "<strong>ADVIES: Deep Research Modellen</strong><br><br>Gebruik:<br><ul><li>ChatGPT Deep Research</li><li>Gemini Deep Research</li><li>Grok DeeperSearch</li></ul>",
+            type: "end"
+        },
+        optie_search: {
+            text: "<strong>ADVIES: Informatie Repereren</strong><br><br>Gebruik **Perplexity** of **ChatGPT Search** voor snelle antwoorden. Voor langdurig, diepgaand bronnenonderzoek gebruikt u **Gemini Deep Research** of **ChatGPT Deep Research**.",
+            type: "end"
+        },
+        hoe_groot_doc: {
+            text: "Hoe groot zijn de documenten die u wilt analyseren?",
+            type: "choices",
+            choices: [
+                { text: "Lange documenten (> 100.000 woorden)", next: "optie_lang_doc" },
+                { text: "Korte tot middelgrote documenten (< 100.000 woorden)", next: "optie_kort_doc" }
+            ]
+        },
+        optie_lang_doc: {
+            text: "<strong>ADVIES: Grote context-modellen</strong><br><br><ul><li>Google Gemini Advanced (Input: 1 Miljoen tokens)</li><li>Claude Pro Sonnet Extended Thinking (Input: 200k tokens)</li></ul>",
+            type: "end"
+        },
+        optie_kort_doc: {
+            text: "<strong>ADVIES: Standaard Plus-modellen</strong><br><br><ul><li>ChatGPT Plus (GPT-4o & o1)</li><li>GPT4All (Lokaal)</li></ul>",
+            type: "end"
+        },
+        combineren_tools: {
+            text: "Wilt u AI combineren met andere tools of automatiseren?",
+            type: "choices",
+            choices: [
+                { text: "Tools om AI te combineren met andere tools (Custom GPTs, Notion AI)", next: "optie_notion" },
+                { text: "Tools voor automatisering van taken en processen (Make, Zapier, n8n)", next: "optie_make" }
+            ]
+        },
+        optie_notion: {
+            text: "<strong>ADVIES: ChatGPT Plus (Custom GPT's) of Notion AI</strong>",
+            type: "end"
+        },
+        optie_make: {
+            text: "<strong>ADVIES: Workflow Automatisering</strong><br><br><ul><li><strong>Make.com:</strong> Meer kracht en flexibiliteit met een visuele interface.</li><li><strong>Zapier AI:</strong> Makkelijk en snel op te zetten automatiseringen zonder code.</li><li><strong>n8n:</strong> Volledige controle en veiligheid, draait open-source.</li></ul>",
+            type: "end"
+        },
+        type_complex: {
+            text: "Welk type complexe taken wilt u uitvoeren?",
+            type: "choices",
+            choices: [
+                { text: "Nauwkeurige analyse en besluitvorming (Wetenschappelijk, strategisch)", next: "optie_reasoning_heavy" },
+                { text: "Creatieve inzichten en patroonherkenning", next: "optie_reasoning_creative" }
+            ]
+        },
+        optie_reasoning_heavy: {
+            text: "<strong>ADVIES: Redeneermodellen (Heavy Reasoning)</strong><br><br><ul><li>Claude Pro Sonnet Extended Thinking</li><li>ChatGPT o1-pro / o3</li><li>Grok 4</li></ul>",
+            type: "end"
+        },
+        optie_reasoning_creative: {
+            text: "<strong>ADVIES: Creatieve patroonherkenning</strong><br><br><ul><li>ChatGPT 4o & o1-mini</li><li>Grok 4</li></ul>",
+            type: "end"
+        },
+        code_in_ide: {
+            text: "Wilt u AI die u direct helpt bij programmeren in uw ontwikkelomgeving (IDE)?",
+            type: "yes_no",
+            yes: "optie_code_ide",
+            no: "optie_code_web"
+        },
+        optie_code_ide: {
+            text: "<strong>ADVIES: IDE-Assistenten</strong><br><br>Tools: **Cursor AI** of **Github Copilot**.<br>Modellen: Claude Sonnet (MAX) of Gemini 2.5 PRO (MAX).",
+            type: "end"
+        },
+        optie_code_web: {
+            text: "<strong>ADVIES: Web-interface voor Code</strong><br><br>Gebruik Claude Pro (Sonnet), Code Llama (Open Source) of Gemini 2.5 PRO via de browser.",
+            type: "end"
+        }
+    },
+    it: {
+        start: {
+            text: "Hai intenzione di elaborare dati sensibili per la privacy o riservati con l'AI?",
+            type: "yes_no",
+            yes: "privacy_lokaal",
+            no: "wat_bereiken"
+        },
+        privacy_lokaal: {
+            text: "Vuoi il controllo totale (on-premise / locale)?",
+            type: "yes_no",
+            yes: "optie_ollama",
+            no: "microsoft_omgeving"
+        },
+        optie_ollama: {
+            text: "<strong>CONSIGLIO: OPZIONE A & LM Studio</strong><br><br>Vantaggi dell'eseguire un LLM localmente sull'hardware proprio:<ul><li>Nessun dato viene inviato a terze parti.</li><li>Controllo totale sulla memorizzazione dei dati.</li><li>Tracciamento completo di log, sicurezza e archiviazione.</li></ul>Modelli adatti: Gemma 2, Mistral, Qwen 2, Llama 3.<br><br><em>Consiglio GDPR: Elabora i dati solo dopo averli resi anonimi.</em>",
+            type: "end"
+        },
+        microsoft_omgeving: {
+            text: "Vuoi lavorare all'interno di un ambiente Microsoft?",
+            type: "yes_no",
+            yes: "optie_copilot",
+            no: "grote_documenten"
+        },
+        optie_copilot: {
+            text: "<strong>CONSIGLIO: Microsoft Copilot for M365</strong><br><br>Adatto per l'elaborazione di milioni di token, documenti molto lunghi, fogli di calcolo e codice con più di 3000 righe in un ambiente aziendale protetto.",
+            type: "end"
+        },
+        grote_documenten: {
+            text: "Vuoi elaborare grandi documenti o dataset (es. più di 700.000 parole)?",
+            type: "yes_no",
+            yes: "optie_gemini_workspace",
+            no: "ai_voor_code"
+        },
+        optie_gemini_workspace: {
+            text: "<strong>CONSIGLIO: Google Gemini Advanced for Workspace</strong><br><br>Ideale per enormi quantità di testo e dati che devono rimanere all'interno dell'ambiente protetto di Google Workspace.",
+            type: "end"
+        },
+        ai_voor_code: {
+            text: "Vuoi usare l'AI per analizzare, spiegare o generare codice?",
+            type: "yes_no",
+            yes: "optie_code_enterprise",
+            no: "optie_teams_enterprise"
+        },
+        optie_code_enterprise: {
+            text: "<strong>CONSIGLIO: Strumenti di Sviluppo Enterprise</strong><br><br>Strumenti: Cursor AI, GitHub Copilot.<br>Modellen: Claude Sonnet con Enterprise API, Gemini 2.5 PRO con Enterprise API.",
+            type: "end"
+        },
+        optie_teams_enterprise: {
+            text: "<strong>CONSIGLIO: Modelli Enterprise Generali</strong><br><br>Scegli account aziendali protetti:<ul><li>Claude (Teams / Enterprise)</li><li>ChatGPT (Teams / Enterprise)</li><li>Google Gemini for Workspace</li></ul>",
+            type: "end"
+        },
+        wat_bereiken: {
+            text: "Cosa vuoi ottenere con l'AI?",
+            type: "choices",
+            choices: [
+                { text: "Generare testi / Brainstorming / Sviluppare idee", next: "tekst_gratis_betaald" },
+                { text: "Ricerca intelligente, investigazione e reperimento informazioni", next: "optie_search" },
+                { text: "Riassumere / Analizzare dati", next: "hoe_groot_doc" },
+                { text: "Automazione di task e workflow", next: "combineren_tools" },
+                { text: "Ragionamento avanzato e analisi di problemi complessi", next: "type_complex" },
+                { text: "Scrivere / Analizzare codice", next: "code_in_ide" }
+            ]
+        },
+        tekst_gratis_betaald: {
+            text: "Vuoi lavorare gratuitamente o desideri un output migliore, velocità e funzionalità avanzate?",
+            type: "choices",
+            choices: [
+                { text: "Gratis (ChatGPT Free, Claude Free, Poe.com)", next: "optie_gratis" },
+                { text: "Output migliore (ChatGPT Plus, Claude Pro, Gemini Advanced)", next: "zoek_snelle_antwoorden" }
+            ]
+        },
+        optie_gratis: {
+            text: "<strong>CONSIGLIO: Strumenti Gratuiti</strong><br><br>Usa ChatGPT Free, Claude Free o Poe.com per testi e idee quotidiane non riservate.",
+            type: "end"
+        },
+        zoek_snelle_antwoorden: {
+            text: "Cerchi risposte rapide o vuoi usare l'AI per ricerche approfondite con contesto e fonti?",
+            type: "choices",
+            choices: [
+                { text: "Risposte rapide / Breve riepilogo con link", next: "optie_perplexity" },
+                { text: "Ricerca approfondita con fonti", next: "optie_deep_research" }
+            ]
+        },
+        optie_perplexity: {
+            text: "<strong>CONSIGLIO: Perplexity o ChatGPT Search</strong><br><br>Ideale per domande attuali con collegamenti diretti alle fonti sul web.",
+            type: "end"
+        },
+        optie_deep_research: {
+            text: "<strong>CONSIGLIO: Modelli di Ricerca Profonda</strong><br><br>Utilizza:<br><ul><li>ChatGPT Deep Research</li><li>Gemini Deep Research</li><li>Grok DeeperSearch</li></ul>",
+            type: "end"
+        },
+        optie_search: {
+            text: "<strong>CONSIGLIO: Reperimento Informazioni</strong><br><br>Usa **Perplexity** o **ChatGPT Search** per risposte rapide. Per ricerche bibliografiche o d'archivio profonde, usa **Gemini Deep Research** o **ChatGPT Deep Research**.",
+            type: "end"
+        },
+        hoe_groot_doc: {
+            text: "Quanto sono grandi i documenti che desideri analizzare?",
+            type: "choices",
+            choices: [
+                { text: "Documenti lunghi (> 100.000 parole)", next: "optie_lang_doc" },
+                { text: "Documenti medio-brevi (< 100.000 parole)", next: "optie_kort_doc" }
+            ]
+        },
+        optie_lang_doc: {
+            text: "<strong>CONSIGLIO: Modelli ad ampio contesto</strong><br><br><ul><li>Google Gemini Advanced (Input: 1 Milione di token)</li><li>Claude Pro Sonnet Extended Thinking (Input: 200k token)</li></ul>",
+            type: "end"
+        },
+        optie_kort_doc: {
+            text: "<strong>CONSIGLIO: Modelli Plus Standard</strong><br><br><ul><li>ChatGPT Plus (GPT-4o & o1)</li><li>GPT4All (Locale)</li></ul>",
+            type: "end"
+        },
+        combineren_tools: {
+            text: "Vuoi combinare l'AI con altri strumenti o automatizzare?",
+            type: "choices",
+            choices: [
+                { text: "Strumenti per integrare l'AI (Custom GPTs, Notion AI)", next: "optie_notion" },
+                { text: "Strumenti per l'automazione di task e processi (Make, Zapier, n8n)", next: "optie_make" }
+            ]
+        },
+        optie_notion: {
+            text: "<strong>CONSIGLIO: ChatGPT Plus (Custom GPT) o Notion AI</strong>",
+            type: "end"
+        },
+        optie_make: {
+            text: "<strong>CONSIGLIO: Automazione dei Workflow</strong><br><br><ul><li><strong>Make.com:</strong> Grande potenza e flessibilità con interfaccia visiva.</li><li><strong>Zapier AI:</strong> Automazioni facili e veloci da configurare senza codice.</li><li><strong>n8n:</strong> Controllo totale e sicurezza, gira in open-source.</li></ul>",
+            type: "end"
+        },
+        type_complex: {
+            text: "Che tipo di compiti complessi vuoi eseguire?",
+            type: "choices",
+            choices: [
+                { text: "Analisi accurata e processo decisionale (Scientifico, strategico)", next: "optie_reasoning_heavy" },
+                { text: "Intuizioni creative e riconoscimento di pattern", next: "optie_reasoning_creative" }
+            ]
+        },
+        optie_reasoning_heavy: {
+            text: "<strong>CONSIGLIO: Modelli di Ragionamento Avanzato</strong><br><br><ul><li>Claude Pro Sonnet Extended Thinking</li><li>ChatGPT o1 / o3</li><li>Grok 4</li></ul>",
+            type: "end"
+        },
+        optie_reasoning_creative: {
+            text: "<strong>CONSIGLIO: Riconoscimento creativo di pattern</strong><br><br><ul><li>ChatGPT 4o & o1-mini</li><li>Grok 4</li></ul>",
+            type: "end"
+        },
+        code_in_ide: {
+            text: "Vuoi un'AI che ti aiuti direttamente a programmare nel tuo ambiente di sviluppo (IDE)?",
+            type: "yes_no",
+            yes: "optie_code_ide",
+            no: "optie_code_web"
+        },
+        optie_code_ide: {
+            text: "<strong>CONSIGLIO: Assistenti IDE</strong><br><br>Strumenti: **Cursor AI** o **Github Copilot**.<br>Modelli: Claude Sonnet (MAX) o Gemini 2.5 PRO (MAX).",
+            type: "end"
+        },
+        optie_code_web: {
+            text: "<strong>CONSIGLIO: Interfaccia Web per Codice</strong><br><br>Usa Claude Pro (Sonnet), Code Llama (Open Source) o Gemini 2.5 PRO direttamente dal browser.",
+            type: "end"
+        }
+    }
+};
+
+let currentLang = 'nl';
+let historyStack = [];
+let currentStepId = 'start';
+
+function setLanguage(lang) {
+    currentLang = lang;
+    document.getElementById('intro-section').classList.add('hidden');
+    document.getElementById('tree-section').classList.remove('hidden');
+    historyStack = [];
+    currentStepId = 'start';
+    renderStep();
+}
+
+function renderStep() {
+    const step = treeData[currentLang][currentStepId];
+    const contentArea = document.getElementById('content-area');
+    let html = `<p id="tts-text">${step.text}</p>`;
+
+    if (step.type === 'yes_no') {
+        html += `
+            <div class="btn-group">
+                <button class="btn-ja" onclick="handleNavigation('${step.yes}')">${currentLang === 'nl' ? 'JA' : 'SÌ'}</button>
+                <button class="btn-nee" onclick="handleNavigation('${step.no}')">NEE / NO</button>
+            </div>
+        `;
+    } else if (step.type === 'choices') {
+        html += `<div class="btn-group" style="flex-direction: column; align-items: stretch;">`;
+        step.choices.forEach(choice => {
+            html += `<button class="btn-choice" onclick="handleNavigation('${choice.next}')">👉 ${choice.text}</button>`;
+        });
+        html += `</div>`;
+    } else if (step.type === 'end') {
+        html += `
+            <div style="margin-top:20px; color:#2ea44f; font-weight:bold;">
+                🏁 ${currentLang === 'nl' ? 'Einde van de boom' : 'Fine del percorso'}
+            </div>
+        `;
+    }
+
+    contentArea.innerHTML = html;
+
+    // Gestione visibilità pulsante "Vorige / Precedente"
+    const backBtn = document.getElementById('btn-back');
+    if (historyStack.length > 0) {
+        backBtn.classList.remove('hidden');
+    } else {
+        backBtn.classList.add('hidden');
+    }
+
+    // Auto-lettura opzionale eliminata per evitare fastidi, l'utente clicca il tasto se vuole.
+}
+
+function handleNavigation(nextStepId) {
+    historyStack.push(currentStepId);
+    currentStepId = nextStepId;
+    renderStep();
+}
+
+function goBack() {
+    if (historyStack.length > 0) {
+        currentStepId = historyStack.pop();
+        renderStep();
+    }
+}
+
+function restartTree() {
+    document.getElementById('tree-section').classList.add('hidden');
+    document.getElementById('intro-section').classList.remove('hidden');
+    window.speechSynthesis.cancel();
+}
+
+// Funzione Text-To-Speech (Legge ad alta voce)
+function speakCurrentStep() {
+    window.speechSynthesis.cancel(); // Ferma eventuali letture precedenti
+    
+    // Rimuove i tag HTML per la lettura testuale pulita
+    const rawText = document.getElementById('tts-text').innerText;
+    
+    const utterance = new SpeechSynthesisUtterance(rawText);
+    utterance.lang = currentLang === 'nl' ? 'nl-NL' : 'it-IT';
+    
+    window.speechSynthesis.speak(utterance);
+}
+</script>
+
+</body>
+</html>
